@@ -21,9 +21,12 @@ import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.support.CompositeItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
+import org.springframework.core.task.TaskExecutor;
 
 import javax.sql.DataSource;
 import java.util.ArrayList;
@@ -87,8 +90,9 @@ public class BatchConfiguration {
 
 
 
-  @Bean
-  public Step step(JdbcBatchItemWriter<Contact> writer) {
+  @Bean(name = "step")
+  @ConditionalOnProperty(prefix = "step", name = "runner", havingValue = "sequential")
+  public Step seqStep(JdbcBatchItemWriter<Contact> writer) {
     return stepBuilderFactory.get("step1")
         .<Contact, Contact> chunk(3)
         .reader(reader(null))
@@ -97,13 +101,30 @@ public class BatchConfiguration {
         .build();
   }
 
+  @Bean(name = "step")
+  @ConditionalOnProperty(prefix = "step", name = "runner", havingValue = "parallel")
+  public Step parallelStep(JdbcBatchItemWriter<Contact> writer) {
+    return stepBuilderFactory.get("step1")
+        .<Contact, Contact> chunk(3)
+        .reader(reader(null))
+        .processor(compositeProcessor())
+        .writer(writer)
+        .taskExecutor(taskExecutor())
+        .build();
+  }
+
   @Bean
-  public Job importJob(Step step1) {
+  public Job importJob(Step step) {
     return jobBuilderFactory.get("importJob")
         .incrementer(new RunIdIncrementer())
         .listener(listener)
-        .flow(step1)
+        .flow(step)
         .end()
         .build();
+  }
+
+  @Bean
+  public TaskExecutor taskExecutor() {
+    return new SimpleAsyncTaskExecutor("spring_batch");
   }
 }

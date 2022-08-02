@@ -5,10 +5,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.item.ItemProcessor;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 public class ContactEnricher implements ItemProcessor<Contact, Contact> {
 
   private static final Logger log = LoggerFactory.getLogger(ContactEnricher.class);
-  private static Long counter = 0L;
+  private static final AtomicLong counter = new AtomicLong(0L);
 
   @Override
   public Contact process(final Contact contact) throws Exception {
@@ -16,8 +18,7 @@ public class ContactEnricher implements ItemProcessor<Contact, Contact> {
     final String lastName = contact.getLastName().toUpperCase();
 
     final Contact transformedContact = new Contact(firstName, lastName);
-    transformedContact.setId(counter);
-    counter++;
+    transformedContact.setId(counter.incrementAndGet());
 
     log.info("Converting (" + contact + ") into (" + transformedContact + ")");
 
