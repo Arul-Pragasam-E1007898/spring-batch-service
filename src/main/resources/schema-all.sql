@@ -1,0 +1,7 @@
+DROP TABLE contacts IF EXISTS;
+
+CREATE TABLE contacts  (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    first_name VARCHAR(20),
+    last_name VARCHAR(20)
+);
